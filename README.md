@@ -4,7 +4,7 @@ Implementation of the XPT2046 Touch controller with esp_lcd_touch component.
 
 | Touch controller | Communication interface | Component name | Link to datasheet |
 | :------------: | :---------------------: | :------------: | :---------------: |
-| XPT2046        | SPI                     | esp_lcd_touch_xpt2046     | [Specification](https://focuslcds.com/content/ILI9488.pdf) |
+| XPT2046        | SPI                     | esp_lcd_touch_xpt2046     | [Specification](https://grobotronics.com/images/datasheets/xpt2046-datasheet.pdf) |
 
 ## Adding this component in your project
 

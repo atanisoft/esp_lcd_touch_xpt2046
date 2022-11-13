@@ -37,12 +37,6 @@ enum xpt2046_registers
 #endif
 
 static const uint16_t XPT2046_ADC_LIMIT = 4096;
-static const uint16_t XPT2046_Z_THRESHOLD = CONFIG_XPT2046_Z_THRESHOLD;
-static const uint16_t XPT2046_X_MIN = CONFIG_XPT2046_X_THRESHOLD;
-static const uint16_t XPT2046_X_MAX = CONFIG_XPT2046_X_LIMIT;
-static const uint16_t XPT2046_Y_MIN = CONFIG_XPT2046_Y_THRESHOLD;
-static const uint16_t XPT2046_Y_MAX = CONFIG_XPT2046_Y_LIMIT;
-
 static esp_err_t xpt2046_read_data(esp_lcd_touch_handle_t tp);
 static bool xpt2046_get_xy(esp_lcd_touch_handle_t tp,
                            uint16_t *x, uint16_t *y,
@@ -140,7 +134,7 @@ static esp_err_t xpt2046_read_data(esp_lcd_touch_handle_t tp)
 
     // If the Z (pressure) exceeds the threshold it is likely the user has
     // pressed the screen, read in and average the positions.
-    if (z >= XPT2046_Z_THRESHOLD)
+    if (z >= CONFIG_XPT2046_Z_THRESHOLD)
     {
         uint16_t temp_buf = 0;
 
@@ -155,48 +149,17 @@ static esp_err_t xpt2046_read_data(esp_lcd_touch_handle_t tp)
                                 TAG, "XPT2046 read error!");
             // normalize to 12-bit position
             temp_buf >>= 3;
-            if (tp->config.x_max)
-            {
-                if (temp_buf > XPT2046_X_MIN)
-                {
-                    temp_buf -= XPT2046_X_MIN;
-                }
-                else
-                {
-                    temp_buf = 0;
-                }
-                // convert raw 12-bit position to X position on the display.
-                x_buf[idx] = (uint32_t)((uint32_t)temp_buf * tp->config.x_max) /
-                                        (XPT2046_X_MAX - XPT2046_X_MIN);
-            }
-            else
-            {
-                x_buf[idx] = temp_buf;
-            }
+            // convert the 12-bit value into a point on the screen
+            x_buf[idx] = (temp_buf / (double)XPT2046_ADC_LIMIT) * tp->config.x_max;
 
             // Read Y position and convert returned data to 12bit value
             ESP_RETURN_ON_ERROR(xpt2046_read_register(tp, Y_POSITION, &temp_buf),
                                 TAG, "XPT2046 read error!");
             // normalize to 12-bit position
             temp_buf >>= 3;
-            if (tp->config.y_max)
-            {
-                if (temp_buf > XPT2046_Y_MIN)
-                {
-                    temp_buf -= XPT2046_Y_MIN;
-                }
-                else
-                {
-                    temp_buf = 0;
-                }
-                // convert raw 12-bit position to Y position on the display.
-                y_buf[idx] = (uint32_t)((uint32_t)temp_buf * tp->config.y_max) /
-                                        (XPT2046_Y_MAX - XPT2046_Y_MIN);
-            }
-            else
-            {
-                y_buf[idx] = temp_buf;
-            }
+
+            // convert the 12-bit value into a point on the screen
+            y_buf[idx] = (temp_buf / (double)XPT2046_ADC_LIMIT) * tp->config.y_max;
         }
 
         for (uint8_t idx = 0; idx < CONFIG_ESP_LCD_TOUCH_MAX_POINTS; idx++)
@@ -257,7 +220,7 @@ static bool xpt2046_get_xy(esp_lcd_touch_handle_t tp, uint16_t *x, uint16_t *y,
     }
     else
     {
-        ESP_LOGD(TAG, "No touch points");
+        ESP_LOGV(TAG, "No touch points");
     }
 
     return (*point_num > 0);
