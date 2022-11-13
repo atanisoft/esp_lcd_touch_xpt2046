@@ -8,14 +8,15 @@
 #include <esp_check.h>
 #include <esp_err.h>
 #include <esp_lcd_panel_io.h>
+#include <esp_rom_gpio.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+// This must be included after FreeRTOS includes due to missing include
+// for portMUX_TYPE
 #include <esp_lcd_touch.h>
-#include <esp_heap_caps.h>
-#include <esp_rom_gpio.h>
 #include <memory.h>
 
-#include <endian.h>
+#include "sdkconfig.h"
 
 static const char *TAG = "xpt2046";
 
@@ -27,12 +28,20 @@ enum xpt2046_registers
     X_POSITION  = 0xD0  // NOTE: XPT2046 datasheet has X and Y reversed!
 };
 
+#if CONFIG_XPT2046_ENABLE_LOCKING
+#define XPT2046_LOCK(lock) portENTER_CRITICAL(lock)
+#define XPT2046_UNLOCK(lock) portEXIT_CRITICAL(lock)
+#else
+#define XPT2046_LOCK(lock)
+#define XPT2046_UNLOCK(lock)
+#endif
+
 static const uint16_t XPT2046_ADC_LIMIT = 4096;
-static const uint16_t XPT2046_Z_THRESHOLD = 400;
-static const uint16_t XPT2046_X_MIN = 200;
-static const uint16_t XPT2046_X_MAX = 1900;
-static const uint16_t XPT2046_Y_MIN = 120;
-static const uint16_t XPT2046_Y_MAX = 1900;
+static const uint16_t XPT2046_Z_THRESHOLD = CONFIG_XPT2046_Z_THRESHOLD;
+static const uint16_t XPT2046_X_MIN = CONFIG_XPT2046_X_THRESHOLD;
+static const uint16_t XPT2046_X_MAX = CONFIG_XPT2046_X_LIMIT;
+static const uint16_t XPT2046_Y_MIN = CONFIG_XPT2046_Y_THRESHOLD;
+static const uint16_t XPT2046_Y_MAX = CONFIG_XPT2046_Y_LIMIT;
 
 static esp_err_t xpt2046_read_data(esp_lcd_touch_handle_t tp);
 static bool xpt2046_get_xy(esp_lcd_touch_handle_t tp,
@@ -200,12 +209,12 @@ static esp_err_t xpt2046_read_data(esp_lcd_touch_handle_t tp)
         point_count = 1;
     }
 
-    portENTER_CRITICAL(&tp->data.lock);
+    XPT2046_LOCK(&tp->data.lock);
     tp->data.coords[0].x = x;
     tp->data.coords[0].y = y;
     tp->data.coords[0].strength = z;
     tp->data.points = point_count;
-    portENTER_CRITICAL(&tp->data.lock);
+    XPT2046_UNLOCK(&tp->data.lock);
 
     return ESP_OK;
 }
@@ -214,7 +223,7 @@ static bool xpt2046_get_xy(esp_lcd_touch_handle_t tp, uint16_t *x, uint16_t *y,
                            uint16_t *strength, uint8_t *point_num,
                            uint8_t max_point_num)
 {
-    portENTER_CRITICAL(&tp->data.lock);
+    XPT2046_LOCK(&tp->data.lock);
 
     // Determine how many touch points that are available.
     if (tp->data.points > max_point_num)
@@ -240,7 +249,7 @@ static bool xpt2046_get_xy(esp_lcd_touch_handle_t tp, uint16_t *x, uint16_t *y,
     // Invalidate stored touch data.
     tp->data.points = 0;
 
-    portENTER_CRITICAL(&tp->data.lock);
+    XPT2046_UNLOCK(&tp->data.lock);
 
     if (*point_num)
     {

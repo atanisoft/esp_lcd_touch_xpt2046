@@ -1,0 +1,41 @@
+menu "XPT2046"
+    config XPT2046_Z_THRESHOLD
+        int "Z pressure threshold"
+        default 400
+        help
+            Touch pressure less than this value will be discarded as invalid
+            and no touch position data collected.
+
+    config XPT2046_X_THRESHOLD
+        int "X position threshold"
+        default 200
+        help
+            This value defines the minimum X value to use for position conversions.
+
+    config XPT2046_X_LIMIT
+        int "X position limit"
+        default 1900
+        help
+            This value defines the maximum X value to use for position conversions.
+
+    config XPT2046_Y_THRESHOLD
+        int "Y position threshold"
+        default 120
+        help
+            This value defines the minimum Y value to use for position conversions.
+
+    config XPT2046_Y_LIMIT
+        int "Y position limit"
+        default 1900
+        help
+            This value defines the maximum Y value to use for position conversions.
+                                
+    config XPT2046_ENABLE_LOCKING
+        bool "Enable data structure locking"
+        default n
+        help
+            By enabling this option the XPT2046 driver will lock the touch position
+            data structures when reading values from the XPT2046 and when reading
+            position data via API.
+            WARNING: enabling this option may result in unintended crashes.
+endmenu
