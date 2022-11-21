@@ -54,6 +54,7 @@ extern "C" {
 #define ESP_LCD_TOUCH_IO_SPI_XPT2046_CONFIG(touch_cs)   \
     {                                                   \
         .cs_gpio_num = (gpio_num_t)touch_cs,            \
+        .dc_gpio_num = GPIO_NUM_0,                      \
         .spi_mode = 0,                                  \
         .pclk_hz = ESP_LCD_TOUCH_SPI_CLOCK_HZ,          \
         .trans_queue_depth = 3,                         \
