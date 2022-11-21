@@ -122,8 +122,6 @@ static esp_err_t xpt2046_read_data(esp_lcd_touch_handle_t tp)
 {
     uint16_t z1 = 0, z2 = 0, z = 0;
     uint32_t x = 0, y = 0;
-    uint16_t x_buf[CONFIG_ESP_LCD_TOUCH_MAX_POINTS];
-    uint16_t y_buf[CONFIG_ESP_LCD_TOUCH_MAX_POINTS];
     uint8_t point_count = 0;
 
     ESP_RETURN_ON_ERROR(xpt2046_read_register(tp, Z_VALUE_1, &z1), TAG, "XPT2046 read error!");
@@ -136,37 +134,38 @@ static esp_err_t xpt2046_read_data(esp_lcd_touch_handle_t tp)
     // pressed the screen, read in and average the positions.
     if (z >= CONFIG_XPT2046_Z_THRESHOLD)
     {
-        uint16_t temp_buf = 0;
+        uint16_t discard_buf = 0;
 
         // read and discard a value as it is usually not reliable.
-        ESP_RETURN_ON_ERROR(xpt2046_read_register(tp, X_POSITION, &temp_buf),
+        ESP_RETURN_ON_ERROR(xpt2046_read_register(tp, X_POSITION, &discard_buf),
                             TAG, "XPT2046 read error!");
 
         for (uint8_t idx = 0; idx < CONFIG_ESP_LCD_TOUCH_MAX_POINTS; idx++)
         {
+            uint16_t x_temp = 0;
+            uint16_t y_temp = 0;
             // Read X position and convert returned data to 12bit value
-            ESP_RETURN_ON_ERROR(xpt2046_read_register(tp, X_POSITION, &temp_buf),
+            ESP_RETURN_ON_ERROR(xpt2046_read_register(tp, X_POSITION, &x_temp),
                                 TAG, "XPT2046 read error!");
             // normalize to 12-bit position
-            temp_buf >>= 3;
-            // convert the 12-bit value into a point on the screen
-            x_buf[idx] = (temp_buf / (double)XPT2046_ADC_LIMIT) * tp->config.x_max;
+            x_temp >>= 3;
+
+            // Convert the raw ADC value into a screen coordinate and store it
+            // for averaging.
+            x += ((x_temp / (double)XPT2046_ADC_LIMIT) * tp->config.x_max);
 
             // Read Y position and convert returned data to 12bit value
-            ESP_RETURN_ON_ERROR(xpt2046_read_register(tp, Y_POSITION, &temp_buf),
+            ESP_RETURN_ON_ERROR(xpt2046_read_register(tp, Y_POSITION, &y_temp),
                                 TAG, "XPT2046 read error!");
             // normalize to 12-bit position
-            temp_buf >>= 3;
+            y_temp >>= 3;
 
-            // convert the 12-bit value into a point on the screen
-            y_buf[idx] = (temp_buf / (double)XPT2046_ADC_LIMIT) * tp->config.y_max;
+            // Convert the raw ADC value into a screen coordinate and store it
+            // for averaging.
+            y += ((y_temp / (double)XPT2046_ADC_LIMIT) * tp->config.y_max);
         }
 
-        for (uint8_t idx = 0; idx < CONFIG_ESP_LCD_TOUCH_MAX_POINTS; idx++)
-        {
-            x += x_buf[idx];
-            y += y_buf[idx];
-        }
+        // Average the accumulated coordinate data points.
         x /= CONFIG_ESP_LCD_TOUCH_MAX_POINTS;
         y /= CONFIG_ESP_LCD_TOUCH_MAX_POINTS;
         point_count = 1;
