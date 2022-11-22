@@ -30,6 +30,14 @@ For more information on the usage of the `idf_component.yml` file please refer t
 
 At this time testing is limited to ESP32 and ESP32-S3, other ESP32 variants should work but are not tested.
 
+## Configuration options
+
+`Kconfig.projbuild` contains a handful of options to allow customization of the XPT2046 interface:
+
+* XPT2046_Z_THRESHOLD - This is the minimum ADC threshold to use for detecting touch points.
+* XPT2046_CONVERT_ADC_TO_COORDS - This option enables / disables the conversion of raw ADC values into screen coordinates. When disabled it will be necessary to define the `process_coordinates` method in `esp_lcd_touch_config_t`. This can be useful for applying calibration or other offsets to adjust the screen coordinates.
+* XPT2046_ENABLE_LOCKING - This option enables / disables the usage of critical sections to protect internal data structures. This has been seen to cause conflicts with other components at times.
+
 ## Example usage
 
 ### Initialization
