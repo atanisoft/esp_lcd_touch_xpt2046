@@ -150,9 +150,15 @@ static esp_err_t xpt2046_read_data(esp_lcd_touch_handle_t tp)
             // normalize to 12-bit position
             x_temp >>= 3;
 
+#if CONFIG_XPT2046_CONVERT_ADC_TO_COORDS
             // Convert the raw ADC value into a screen coordinate and store it
             // for averaging.
             x += ((x_temp / (double)XPT2046_ADC_LIMIT) * tp->config.x_max);
+#else
+            // store the raw ADC values and let the user convert them to screen
+            // coordinates.
+            x += x_temp;
+#endif // CONFIG_XPT2046_CONVERT_ADC_TO_COORDS
 
             // Read Y position and convert returned data to 12bit value
             ESP_RETURN_ON_ERROR(xpt2046_read_register(tp, Y_POSITION, &y_temp),
@@ -160,9 +166,15 @@ static esp_err_t xpt2046_read_data(esp_lcd_touch_handle_t tp)
             // normalize to 12-bit position
             y_temp >>= 3;
 
+#if CONFIG_XPT2046_CONVERT_ADC_TO_COORDS
             // Convert the raw ADC value into a screen coordinate and store it
             // for averaging.
             y += ((y_temp / (double)XPT2046_ADC_LIMIT) * tp->config.y_max);
+#else
+            // store the raw ADC values and let the user convert them to screen
+            // coordinates.
+            y += y_temp;
+#endif // CONFIG_XPT2046_CONVERT_ADC_TO_COORDS
         }
 
         // Average the accumulated coordinate data points.
