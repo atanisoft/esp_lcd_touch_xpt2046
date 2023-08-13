@@ -76,17 +76,29 @@ extern "C" {
  *
  * @note The SPI communication should be initialized before use this function.
  *
- * @param io LCD/Touch panel IO handle
- * @param config: Touch configuration
- * @param out_touch: Touch instance handle
+ * @param io: LCD/Touch panel IO handle.
+ * @param config: Touch configuration.
+ * @param out_touch: XPT2046 instance handle.
  * @return
  *      - ESP_OK                    on success
- *      - ESP_ERR_NO_MEM            if there is no memory for allocating main structure
+ *      - ESP_ERR_NO_MEM            if there is insufficient memory for allocating main structure.
  *      - ESP_ERR_INVALID_ARG       if @param io or @param config are null.
  */
 esp_err_t esp_lcd_touch_new_spi_xpt2046(const esp_lcd_panel_io_handle_t io,
                                         const esp_lcd_touch_config_t *config,
                                         esp_lcd_touch_handle_t *out_touch);
+
+/**
+ * @brief Reads the voltage from the v-bat pin of the XPT2046.
+ * 
+ * @param handle: XPT2046 instance handle.
+ * @param out_level: Approximate voltage read in from the v-bat pin.
+ * @return
+ *      - ESP_OK on success, otherwise returns ESP_ERR_xxx
+ * 
+ * @note The v-bat pin has a voltage range of 0.0 to 6.0 volts.
+ */
+esp_err_t esp_lcd_touch_xpt2046_read_battery_level(const esp_lcd_touch_handle_t handle, float *out_level);
 
 #ifdef __cplusplus
 }

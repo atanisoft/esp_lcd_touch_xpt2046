@@ -22,10 +22,13 @@ static const char *TAG = "xpt2046";
 
 enum xpt2046_registers
 {
-    Z_VALUE_1   = 0xB1,
-    Z_VALUE_2   = 0xC1,
-    Y_POSITION  = 0x90, // NOTE: XPT2046 datasheet has X and Y reversed!
-    X_POSITION  = 0xD0  // NOTE: XPT2046 datasheet has X and Y reversed!
+                        // START  ADDR  SER/  INT   VREF    ADC
+                        //              DFR   ENA   INT/EXT ENA
+    Z_VALUE_1   = 0xB1, // 1      011   0     0     0       1
+    Z_VALUE_2   = 0xC1, // 1      100   0     0     0       1
+    Y_POSITION  = 0x91, // 1      001   0     0     0       1
+    X_POSITION  = 0xD1, // 1      101   0     0     0       1
+    BATTERY     = 0xA7  // 1      010   0     1     1       1
 };
 
 #if CONFIG_XPT2046_ENABLE_LOCKING
@@ -77,8 +80,22 @@ esp_err_t esp_lcd_touch_new_spi_xpt2046(const esp_lcd_panel_io_handle_t io,
         esp_rom_gpio_pad_select_gpio(config->int_gpio_num);
         cfg.pin_bit_mask = BIT64(config->int_gpio_num);
         cfg.mode = GPIO_MODE_INPUT;
+
+        // If the user has provided a callback routine for the interrupt enable
+        // the interrupt mode on the negative edge.
+        if (config->interrupt_callback)
+        {
+            cfg.intr_type = GPIO_INTR_NEGEDGE;
+        }
+
         ESP_GOTO_ON_ERROR(gpio_config(&cfg), err, TAG,
                           "Configure GPIO for Interrupt failed");
+
+        // Connect the user interrupt callback routine.
+        if (config->interrupt_callback)
+        {
+            esp_lcd_touch_register_interrupt_callback(handle, config->interrupt_callback);
+        }
     }
 
 err:
@@ -147,7 +164,7 @@ static esp_err_t xpt2046_read_data(esp_lcd_touch_handle_t tp)
             // Read X position and convert returned data to 12bit value
             ESP_RETURN_ON_ERROR(xpt2046_read_register(tp, X_POSITION, &x_temp),
                                 TAG, "XPT2046 read error!");
-            // normalize to 12-bit position
+            // drop lowest three bits to convert to 12-bit position
             x_temp >>= 3;
 
 #if CONFIG_XPT2046_CONVERT_ADC_TO_COORDS
@@ -163,7 +180,7 @@ static esp_err_t xpt2046_read_data(esp_lcd_touch_handle_t tp)
             // Read Y position and convert returned data to 12bit value
             ESP_RETURN_ON_ERROR(xpt2046_read_register(tp, Y_POSITION, &y_temp),
                                 TAG, "XPT2046 read error!");
-            // normalize to 12-bit position
+            // drop lowest three bits to convert to 12-bit position
             y_temp >>= 3;
 
 #if CONFIG_XPT2046_CONVERT_ADC_TO_COORDS
@@ -235,4 +252,23 @@ static bool xpt2046_get_xy(esp_lcd_touch_handle_t tp, uint16_t *x, uint16_t *y,
     }
 
     return (*point_num > 0);
+}
+
+esp_err_t esp_lcd_touch_xpt2046_read_battery_level(const esp_lcd_touch_handle_t handle, float *output)
+{
+    uint16_t level;
+    level * 2.5 * 4) / 4096.0f
+    ESP_RETURN_ON_ERROR(xpt2046_read_register(tp, BATTERY, &level), TAG, "XPT2046 read error!");
+    
+    // battery voltage is reported as 1/4 the actual voltage due to logic in
+    // the chip.
+    *output = level * 4.0;
+
+    // adjust for internal vref of 2.5v
+    *output *= 2.5f;
+
+    // adjust for ADC bit count
+    *output /= 4096.0f
+
+    return ESP_OK;
 }

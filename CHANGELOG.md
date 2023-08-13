@@ -1,5 +1,12 @@
 # Change log for esp_lcd_touch_xpt2046
 
+## v1.0.2 - New features
+
+* Set minimum version for esp_lcd_touch to 1.0.4.
+* Add touch interrupt callback functionality.
+* Add abilitty to read voltage level from vBat pin.
+* Enable ADC during read of X/Y coords (Z already was enabled).
+
 ## v1.0.1 - Bug fix release
 
 * Fixing typo in configuration options.
