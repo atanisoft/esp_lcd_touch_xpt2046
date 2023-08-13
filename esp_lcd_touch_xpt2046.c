@@ -257,7 +257,6 @@ static bool xpt2046_get_xy(esp_lcd_touch_handle_t tp, uint16_t *x, uint16_t *y,
 esp_err_t esp_lcd_touch_xpt2046_read_battery_level(const esp_lcd_touch_handle_t handle, float *output)
 {
     uint16_t level;
-    level * 2.5 * 4) / 4096.0f
     ESP_RETURN_ON_ERROR(xpt2046_read_register(tp, BATTERY, &level), TAG, "XPT2046 read error!");
     
     // battery voltage is reported as 1/4 the actual voltage due to logic in
