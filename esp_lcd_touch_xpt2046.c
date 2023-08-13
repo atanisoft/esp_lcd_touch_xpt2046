@@ -267,7 +267,7 @@ esp_err_t esp_lcd_touch_xpt2046_read_battery_level(const esp_lcd_touch_handle_t 
     *output *= 2.5f;
 
     // adjust for ADC bit count
-    *output /= 4096.0f
+    *output /= 4096.0f;
 
     return ESP_OK;
 }
