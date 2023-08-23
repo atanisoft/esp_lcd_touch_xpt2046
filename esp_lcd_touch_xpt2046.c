@@ -73,7 +73,7 @@ esp_err_t esp_lcd_touch_new_spi_xpt2046(const esp_lcd_panel_io_handle_t io,
     // this is not yet supported by esp_lcd_touch.
     if (config->int_gpio_num != GPIO_NUM_NC)
     {
-        ESP_GOTO_ON_FALSE(GPIO_IS_VALID_GPIO(config->rst_gpio_num),
+        ESP_GOTO_ON_FALSE(GPIO_IS_VALID_GPIO(config->int_gpio_num),
             ESP_ERR_INVALID_ARG, err, TAG, "Invalid GPIO Interrupt Pin");
         gpio_config_t cfg;
         memset(&cfg, 0, sizeof(gpio_config_t));

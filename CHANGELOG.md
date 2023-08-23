@@ -6,7 +6,8 @@
 * Add touch interrupt callback functionality.
 * Add abilitty to read voltage level from vBat pin.
 * Enable ADC during read of X/Y coords (Z already was enabled).
-* Add IDF v5.1 esp_lcd_panel_io_spi_config_t updates
+* Add IDF v5.1 esp_lcd_panel_io_spi_config_t updates.
+* Fixing interrupt gpio pin reference during initialization.
 
 ## v1.0.1 - Bug fix release
 
