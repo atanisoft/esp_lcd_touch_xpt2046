@@ -1,5 +1,9 @@
 # Change log for esp_lcd_touch_xpt2046
 
+## v1.0.3 - Minor Bug fixes
+
+* Add new parameters to ESP_LCD_TOUCH_IO_SPI_XPT2046_CONFIG macro based on IDF v5.1.2 and v5.1.3+.
+
 ## v1.0.2 - New features
 
 * Set minimum version for esp_lcd_touch to 1.0.4.

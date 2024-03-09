@@ -95,7 +95,7 @@ extern "C" {
             .cs_high_active = 0                         \
         }                                               \
     }
-#else
+#elif ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5,1,3)
 
 /**
  * @brief Communication SPI device IO structure
@@ -122,7 +122,36 @@ extern "C" {
             .cs_high_active = 0                         \
         }                                               \
     }
-#endif // IDF v5.1.2
+#else
+
+/**
+ * @brief Communication SPI device IO structure
+ *
+ */
+#define ESP_LCD_TOUCH_IO_SPI_XPT2046_CONFIG(touch_cs)   \
+    {                                                   \
+        .cs_gpio_num = (gpio_num_t)touch_cs,            \
+        .dc_gpio_num = GPIO_NUM_NC,                     \
+        .spi_mode = 0,                                  \
+        .pclk_hz = ESP_LCD_TOUCH_SPI_CLOCK_HZ,          \
+        .trans_queue_depth = 3,                         \
+        .on_color_trans_done = NULL,                    \
+        .user_ctx = NULL,                               \
+        .lcd_cmd_bits = 8,                              \
+        .lcd_param_bits = 8,                            \
+        .flags =                                        \
+        {                                               \
+            .dc_high_on_cmd = 0,                        \
+            .dc_low_on_data = 0,                        \
+            .dc_low_on_param = 0,                        \
+            .octal_mode = 0,                            \
+            .quad_mode = 0,                             \
+            .sio_mode = 0,                              \
+            .lsb_first = 0,                             \
+            .cs_high_active = 0                         \
+        }                                               \
+    }
+#endif // IDF v5.1.3
 
 /**
  * @brief Create a new XPT2046 touch driver
