@@ -161,8 +161,21 @@ static esp_err_t xpt2046_read_data(esp_lcd_touch_handle_t tp)
     uint8_t point_count = 0;
 
 #ifdef CONFIG_XPT2046_INTERRUPT_MODE
-    // Can't check the PENIRQ pin in the driver as the GPIO number isn't available
-    // Just have to poll the register to check for touch
+    if (tp->config.int_gpio_num != GPIO_NUM_NC)
+    {
+        // Check the PENIRQ pin to see if there is a touch
+        if (gpio_get_level(tp->config.int_gpio_num))
+        {
+            XPT2046_LOCK(&tp->data.lock);
+            tp->data.coords[0].x = 0;
+            tp->data.coords[0].y = 0;
+            tp->data.coords[0].strength = 0;
+            tp->data.points = 0;
+            XPT2046_UNLOCK(&tp->data.lock);
+
+            return ESP_OK;
+        }
+    }
 #endif
 
     ESP_RETURN_ON_ERROR(xpt2046_read_register(tp, Z_VALUE_1, &z1), TAG, "XPT2046 read error!");
