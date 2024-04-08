@@ -20,15 +20,32 @@
 
 static const char *TAG = "xpt2046";
 
+#ifdef CONFIG_XPT2046_INTERRUPT_MODE
+    #define XPT2046_PD0_BIT       (0x00)
+#else
+    #define XPT2046_PD0_BIT       (0x01)
+#endif
+
+#ifdef CONFIG_XPT2046_VREF_ON_MODE
+    #define XPT2046_PD1_BIT   (0x02)
+#else
+    #define XPT2046_PD1_BIT   (0x00)
+#endif
+
+#define XPT2046_PD_BITS       (XPT2046_PD1_BIT | XPT2046_PD0_BIT)
+
 enum xpt2046_registers
 {
-                        // START  ADDR  SER/  INT   VREF    ADC
-                        //              DFR   ENA   INT/EXT ENA
-    Z_VALUE_1   = 0xB1, // 1      011   0     0     0       1
-    Z_VALUE_2   = 0xC1, // 1      100   0     0     0       1
-    Y_POSITION  = 0x91, // 1      001   0     0     0       1
-    X_POSITION  = 0xD1, // 1      101   0     0     0       1
-    BATTERY     = 0xA7  // 1      010   0     1     1       1
+                                          // START  ADDR  MODE    SER/  VREF    ADC (PENIRQ)
+                                          //              12/8b   DFR   INT/EXT ENA
+    Z_VALUE_1   = 0xB0 | XPT2046_PD_BITS, // 1      011   0       0     X       X
+    Z_VALUE_2   = 0xC0 | XPT2046_PD_BITS, // 1      100   0       0     X       X
+    Y_POSITION  = 0x90 | XPT2046_PD_BITS, // 1      001   0       0     X       X
+    X_POSITION  = 0xD0 | XPT2046_PD_BITS, // 1      101   0       0     X       X
+    BATTERY     = 0xA6 | XPT2046_PD_BITS, // 1      010   0       1     1       X
+    AUX_IN      = 0xE6 | XPT2046_PD_BITS, // 1      110   0       1     1       X
+    TEMP0       = 0x86 | XPT2046_PD_BITS, // 1      000   0       1     1       X
+    TEMP1       = 0xF6 | XPT2046_PD_BITS, // 1      111   0       1     1       X
 };
 
 #if CONFIG_XPT2046_ENABLE_LOCKING
@@ -38,6 +55,8 @@ enum xpt2046_registers
 #define XPT2046_LOCK(lock)
 #define XPT2046_UNLOCK(lock)
 #endif
+
+#define XPT2046_TEMP0_COUNTS_AT_25C   (599.5 / 2507 * 4096)
 
 static const uint16_t XPT2046_ADC_LIMIT = 4096;
 static esp_err_t xpt2046_read_data(esp_lcd_touch_handle_t tp);
@@ -141,6 +160,11 @@ static esp_err_t xpt2046_read_data(esp_lcd_touch_handle_t tp)
     uint32_t x = 0, y = 0;
     uint8_t point_count = 0;
 
+#ifdef CONFIG_XPT2046_INTERRUPT_MODE
+    // Can't check the PENIRQ pin in the driver as the GPIO number isn't available
+    // Just have to poll the register to check for touch
+#endif
+
     ESP_RETURN_ON_ERROR(xpt2046_read_register(tp, Z_VALUE_1, &z1), TAG, "XPT2046 read error!");
     ESP_RETURN_ON_ERROR(xpt2046_read_register(tp, Z_VALUE_2, &z2), TAG, "XPT2046 read error!");
 
@@ -167,37 +191,44 @@ static esp_err_t xpt2046_read_data(esp_lcd_touch_handle_t tp)
             // drop lowest three bits to convert to 12-bit position
             x_temp >>= 3;
 
-#if CONFIG_XPT2046_CONVERT_ADC_TO_COORDS
-            // Convert the raw ADC value into a screen coordinate and store it
-            // for averaging.
-            x += ((x_temp / (double)XPT2046_ADC_LIMIT) * tp->config.x_max);
-#else
-            // store the raw ADC values and let the user convert them to screen
-            // coordinates.
-            x += x_temp;
-#endif // CONFIG_XPT2046_CONVERT_ADC_TO_COORDS
-
             // Read Y position and convert returned data to 12bit value
             ESP_RETURN_ON_ERROR(xpt2046_read_register(tp, Y_POSITION, &y_temp),
                                 TAG, "XPT2046 read error!");
             // drop lowest three bits to convert to 12-bit position
             y_temp >>= 3;
 
+            // Test if the readings are valid (50 < reading < max - 50)
+            if ((x_temp >= 50) && (x_temp <= XPT2046_ADC_LIMIT - 50) && (y_temp >= 50) && (y_temp <= XPT2046_ADC_LIMIT - 50))
+            {
 #if CONFIG_XPT2046_CONVERT_ADC_TO_COORDS
-            // Convert the raw ADC value into a screen coordinate and store it
-            // for averaging.
-            y += ((y_temp / (double)XPT2046_ADC_LIMIT) * tp->config.y_max);
+                // Convert the raw ADC value into a screen coordinate and store it
+                // for averaging.
+                x += ((x_temp / (double)XPT2046_ADC_LIMIT) * tp->config.x_max);
+                y += ((y_temp / (double)XPT2046_ADC_LIMIT) * tp->config.y_max);
 #else
-            // store the raw ADC values and let the user convert them to screen
-            // coordinates.
-            y += y_temp;
+                // store the raw ADC values and let the user convert them to screen
+                // coordinates.
+                x += x_temp;
+                y += y_temp;
 #endif // CONFIG_XPT2046_CONVERT_ADC_TO_COORDS
+                point_count++;
+            }
         }
 
-        // Average the accumulated coordinate data points.
-        x /= CONFIG_ESP_LCD_TOUCH_MAX_POINTS;
-        y /= CONFIG_ESP_LCD_TOUCH_MAX_POINTS;
-        point_count = 1;
+        // Check we had enough valid values
+        const int minimum_count = (1 == CONFIG_ESP_LCD_TOUCH_MAX_POINTS ? 1 : CONFIG_ESP_LCD_TOUCH_MAX_POINTS/2);
+        if (point_count >= minimum_count)
+        {
+            // Average the accumulated coordinate data points.
+            x /= point_count;
+            y /= point_count;
+            point_count = 1;
+        }
+        else
+        {
+            z = 0;
+            point_count = 0;
+        }
     }
 
     XPT2046_LOCK(&tp->data.lock);
@@ -257,17 +288,105 @@ static bool xpt2046_get_xy(esp_lcd_touch_handle_t tp, uint16_t *x, uint16_t *y,
 esp_err_t esp_lcd_touch_xpt2046_read_battery_level(const esp_lcd_touch_handle_t handle, float *output)
 {
     uint16_t level;
+#ifndef CONFIG_XPT2046_VREF_ON_MODE
+    // First read is to turn on the Vref, so it has extra time to stabilise before we read it for real
     ESP_RETURN_ON_ERROR(xpt2046_read_register(handle, BATTERY, &level), TAG, "XPT2046 read error!");
-    
+#endif
+    // Read the battery voltage
+    ESP_RETURN_ON_ERROR(xpt2046_read_register(handle, BATTERY, &level), TAG, "XPT2046 read error!");
+    // drop lowest three bits to convert to 12-bit value
+    level >>= 3;
+
     // battery voltage is reported as 1/4 the actual voltage due to logic in
     // the chip.
     *output = level * 4.0;
 
     // adjust for internal vref of 2.5v
-    *output *= 2.5f;
+    *output *= 2.507f;
 
     // adjust for ADC bit count
     *output /= 4096.0f;
+
+#ifndef CONFIG_XPT2046_VREF_ON_MODE
+    // Final read is to turn the Vref off
+    ESP_RETURN_ON_ERROR(xpt2046_read_register(handle, Z_VALUE_1, &level), TAG, "XPT2046 read error!");
+#endif
+
+    return ESP_OK;
+}
+
+esp_err_t esp_lcd_touch_xpt2046_read_aux_level(const esp_lcd_touch_handle_t handle, float *output)
+{
+    uint16_t level;
+#ifndef CONFIG_XPT2046_VREF_ON_MODE
+    // First read is to turn on the Vref, so it has extra time to stabilise before we read it for real
+    ESP_RETURN_ON_ERROR(xpt2046_read_register(handle, AUX_IN, &level), TAG, "XPT2046 read error!");
+#endif
+    // Read the aux input voltage
+    ESP_RETURN_ON_ERROR(xpt2046_read_register(handle, AUX_IN, &level), TAG, "XPT2046 read error!");
+    // drop lowest three bits to convert to 12-bit value
+    level >>= 3;
+    *output = level;
+
+    // adjust for internal vref of 2.5v
+    *output *= 2.507f;
+
+    // adjust for ADC bit count
+    *output /= 4096.0f;
+
+#ifndef CONFIG_XPT2046_VREF_ON_MODE
+    // Final read is to turn on the ADC and the Vref off
+    ESP_RETURN_ON_ERROR(xpt2046_read_register(handle, Z_VALUE_1, &level), TAG, "XPT2046 read error!");
+#endif
+
+    return ESP_OK;
+}
+
+esp_err_t esp_lcd_touch_xpt2046_read_temp0_level(const esp_lcd_touch_handle_t handle, float *output)
+{
+    uint16_t temp0;
+#ifndef CONFIG_XPT2046_VREF_ON_MODE
+    // First read is to turn on the Vref, so it has extra time to stabilise before we read it for real
+    ESP_RETURN_ON_ERROR(xpt2046_read_register(handle, TEMP0, &temp0), TAG, "XPT2046 read error!");
+#endif
+    // Read the temp0 value
+    ESP_RETURN_ON_ERROR(xpt2046_read_register(handle, TEMP0, &temp0), TAG, "XPT2046 read error!");
+    // drop lowest three bits to convert to 12-bit value
+    temp0 >>= 3;
+    *output = temp0;
+    // Convert to temperature in degrees C
+    *output = (XPT2046_TEMP0_COUNTS_AT_25C - *output) * (2.507 / 4096.0) / 0.0021 + 25.0;
+
+#ifndef CONFIG_XPT2046_VREF_ON_MODE
+    // Final read is to turn on the ADC and the Vref off
+    ESP_RETURN_ON_ERROR(xpt2046_read_register(handle, Z_VALUE_1, &temp0), TAG, "XPT2046 read error!");
+#endif
+
+    return ESP_OK;
+}
+
+esp_err_t esp_lcd_touch_xpt2046_read_temp1_level(const esp_lcd_touch_handle_t handle, float *output)
+{
+    uint16_t temp0;
+    uint16_t temp1;
+#ifndef CONFIG_XPT2046_VREF_ON_MODE
+    // First read is to turn on the Vref, so it has extra time to stabilise before we read it for real
+    ESP_RETURN_ON_ERROR(xpt2046_read_register(handle, TEMP0, &temp0), TAG, "XPT2046 read error!");
+#endif
+    // Read the temp0 value
+    ESP_RETURN_ON_ERROR(xpt2046_read_register(handle, TEMP0, &temp0), TAG, "XPT2046 read error!");
+    // Read the temp1 value
+    ESP_RETURN_ON_ERROR(xpt2046_read_register(handle, TEMP1, &temp1), TAG, "XPT2046 read error!");
+    // drop lowest three bits to convert to 12-bit value
+    temp0 >>= 3;
+    temp1 >>= 3;
+    *output = temp1 - temp0;
+    *output = *output * 1000.0 * (2.507 / 4096.0) * 2.573 - 273.0;
+
+#ifndef CONFIG_XPT2046_VREF_ON_MODE
+    // Final read is to turn on the ADC and the Vref off
+    ESP_RETURN_ON_ERROR(xpt2046_read_register(handle, Z_VALUE_1, &temp0), TAG, "XPT2046 read error!");
+#endif
 
     return ESP_OK;
 }
