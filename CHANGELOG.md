@@ -1,5 +1,17 @@
 # Change log for esp_lcd_touch_xpt2046
 
+## v1.0.4 - New features
+
+* Add ability to read voltage level from Aux pin.
+* Add ability to read temperature using the TEMP0 register (one point mode).
+* Add ability to read temperature using the TEMP0 and TEMP1 registers (two point mode).
+* Enable PENIRQ pin output when touched (if configured).
+* Enable use of PENIRQ input to test for touch (if PENIRQ input pin configured).
+* Allow leaving Vref permanently on (if configured). Increases power usage but reduces SPI transactions for temperature and voltage reads.
+* Fixes battery voltage read (was scaled incorrectly).
+* Fixes coordinate averaging (fix random bad clicks).
+* Adjusts Vref voltage to reflect value in typical usage conditions.
+
 ## v1.0.3 - Minor Bug fixes
 
 * Add new parameters to ESP_LCD_TOUCH_IO_SPI_XPT2046_CONFIG macro based on IDF v5.1.2 and v5.1.3+.

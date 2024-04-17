@@ -56,9 +56,12 @@ enum xpt2046_registers
 #define XPT2046_UNLOCK(lock)
 #endif
 
-#define XPT2046_TEMP0_COUNTS_AT_25C   (599.5 / 2507 * 4096)
-
 static const uint16_t XPT2046_ADC_LIMIT = 4096;
+// refer the TSC2046 datasheet https://www.ti.com/lit/ds/symlink/tsc2046.pdf rev F 2008
+// TEMP0 reads approx 599.5 mV at 25C (Refer p8 TEMP0 diode voltage vs Vcc chart)
+// Vref is approx 2.507V = 2507mV at moderate temperatures (refer p8 Vref vs Temperature chart)
+// counts@25C = TEMP0_mV / Vref_mv * XPT2046_ADC_LIMIT
+static const float XPT2046_TEMP0_COUNTS_AT_25C = (599.5 / 2507 * XPT2046_ADC_LIMIT);
 static esp_err_t xpt2046_read_data(esp_lcd_touch_handle_t tp);
 static bool xpt2046_get_xy(esp_lcd_touch_handle_t tp,
                            uint16_t *x, uint16_t *y,
