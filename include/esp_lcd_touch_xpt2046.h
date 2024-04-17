@@ -172,15 +172,50 @@ esp_err_t esp_lcd_touch_new_spi_xpt2046(const esp_lcd_panel_io_handle_t io,
 
 /**
  * @brief Reads the voltage from the v-bat pin of the XPT2046.
- * 
+ *
  * @param handle: XPT2046 instance handle.
  * @param out_level: Approximate voltage read in from the v-bat pin.
  * @return
  *      - ESP_OK on success, otherwise returns ESP_ERR_xxx
- * 
+ *
  * @note The v-bat pin has a voltage range of 0.0 to 6.0 volts.
  */
 esp_err_t esp_lcd_touch_xpt2046_read_battery_level(const esp_lcd_touch_handle_t handle, float *out_level);
+
+/**
+ * @brief Reads the voltage from the aux pin of the XPT2046.
+ *
+ * @param handle: XPT2046 instance handle.
+ * @param out_level: Approximate voltage read in from the aux pin.
+ * @return
+ *      - ESP_OK on success, otherwise returns ESP_ERR_xxx
+ *
+ * @note The aux pin has a voltage range of 0.0 to 2.5 volts.
+ */
+esp_err_t esp_lcd_touch_xpt2046_read_aux_level(const esp_lcd_touch_handle_t handle, float *out_level);
+
+/**
+ * @brief Reads the temperature from the XPT2046 using a one-point reading.
+ *        High precision (0.3 degrees C) but low accuracy requires a
+ *        calibration offset for accurate results.
+ *
+ * @param handle: XPT2046 instance handle.
+ * @param out_level: Approximate tempreature of the TSC2046 in degrees C
+ * @return
+ *      - ESP_OK on success, otherwise returns ESP_ERR_xxx
+ */
+esp_err_t esp_lcd_touch_xpt2046_read_temp0_level(const esp_lcd_touch_handle_t handle, float *output);
+
+/**
+ * @brief Reads the temperature from the XPT2046 using a two-point reading.
+ *        Low precision (1.6 degrees C) but high accuracy requires no calibration.
+ *
+ * @param handle: XPT2046 instance handle.
+ * @param out_level: Approximate tempreature of the TSC2046 in degrees C
+ * @return
+ *      - ESP_OK on success, otherwise returns ESP_ERR_xxx
+ */
+esp_err_t esp_lcd_touch_xpt2046_read_temp1_level(const esp_lcd_touch_handle_t handle, float *output);
 
 #ifdef __cplusplus
 }

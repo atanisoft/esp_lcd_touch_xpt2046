@@ -6,6 +6,24 @@ menu "XPT2046"
             Touch pressure less than this value will be discarded as invalid
             and no touch position data collected.
 
+    config XPT2046_INTERRUPT_MODE
+        bool "Enable Interrupt (PENIRQ) output"
+        default n
+        help
+            Also called Full Power Mode.
+            Enable this to configure the XPT2046 to output low on the PENIRQ output
+            if a touch is detected.
+            This mode uses more power when enabled.
+            Note that this signal goes low normally when a read is active.
+
+    config XPT2046_VREF_ON_MODE
+        bool "Keep internal Vref enabled"
+        default n
+        help
+            Enable this to keep the internal Vref enabled between conversions.
+            This uses slightly more power, but requires fewer transactions when
+            reading the battery voltage, aux voltage and temperature.
+
     config XPT2046_CONVERT_ADC_TO_COORDS
         bool "Convert touch coordinates to screen coordinates"
         default y
