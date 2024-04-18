@@ -35,6 +35,8 @@ At this time testing is limited to ESP32 and ESP32-S3, other ESP32 variants shou
 `Kconfig.projbuild` contains a handful of options to allow customization of the XPT2046 interface:
 
 * XPT2046_Z_THRESHOLD - This is the minimum ADC threshold to use for detecting touch points.
+* XPT2046_INTERRUPT_MODE - This option enables / disables the PENIRQ output from the chip. If enabled (and the `int_gpio_num` is set) the driver can check for touch more efficiently by reading the input.
+* XPT2046_VREF_ON_MODE - This option enables / disables keeping the internal Vref permanently enabled. This uses more power, but requires fewer SPI transactions when reading the battery voltage, aux voltage and temperature.
 * XPT2046_CONVERT_ADC_TO_COORDS - This option enables / disables the conversion of raw ADC values into screen coordinates. When disabled it will be necessary to define the `process_coordinates` method in `esp_lcd_touch_config_t`. This can be useful for applying calibration or other offsets to adjust the screen coordinates.
 * XPT2046_ENABLE_LOCKING - This option enables / disables the usage of critical sections to protect internal data structures. This has been seen to cause conflicts with other components at times.
 
