@@ -1,5 +1,9 @@
 # Change log for esp_lcd_touch_xpt2046
 
+## v1.0.5 - New features
+
+* Support for interrupt triggered wake-up for reading, thanks @ttt470!
+
 ## v1.0.4 - New features
 
 * Add ability to read voltage level from Aux pin.
