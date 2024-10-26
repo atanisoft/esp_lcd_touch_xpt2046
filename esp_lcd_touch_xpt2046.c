@@ -92,7 +92,6 @@ esp_err_t esp_lcd_touch_new_spi_xpt2046(const esp_lcd_panel_io_handle_t io,
     handle->data.lock.owner = portMUX_FREE_VAL;
     memcpy(&handle->config, config, sizeof(esp_lcd_touch_config_t));
 
-    // this is not yet supported by esp_lcd_touch.
     if (config->int_gpio_num != GPIO_NUM_NC)
     {
         ESP_GOTO_ON_FALSE(GPIO_IS_VALID_GPIO(config->int_gpio_num),
@@ -102,6 +101,7 @@ esp_err_t esp_lcd_touch_new_spi_xpt2046(const esp_lcd_panel_io_handle_t io,
         esp_rom_gpio_pad_select_gpio(config->int_gpio_num);
         cfg.pin_bit_mask = BIT64(config->int_gpio_num);
         cfg.mode = GPIO_MODE_INPUT;
+        cfg.intr_type = (config->levels.interrupt ? GPIO_INTR_POSEDGE : GPIO_INTR_NEGEDGE);
 
         // If the user has provided a callback routine for the interrupt enable
         // the interrupt mode on the negative edge.
