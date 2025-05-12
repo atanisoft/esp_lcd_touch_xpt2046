@@ -118,6 +118,13 @@ esp_err_t esp_lcd_touch_new_spi_xpt2046(const esp_lcd_panel_io_handle_t io,
         {
             esp_lcd_touch_register_interrupt_callback(handle, config->interrupt_callback);
         }
+
+#if CONFIG_XPT2046_INTERRUPT_MODE
+        // Read a register to enable Low Power mode, which is required for interrupt to work.
+        uint8_t battery = 0;
+        ESP_GOTO_ON_ERROR(esp_lcd_panel_io_rx_param(handle->io, BATTERY, &battery, 1), err, TAG, "XPT2046 read error!");
+#endif
+
     }
 
 err:
