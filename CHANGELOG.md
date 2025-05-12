@@ -1,8 +1,13 @@
 # Change log for esp_lcd_touch_xpt2046
 
-## v1.0.5 - New features
 
-* Support for interrupt triggered wake-up for reading, thanks @ttt470!
+## v1.0.6 - new features
+
+* Fixing interrupt mode via PR https://github.com/atanisoft/esp_lcd_touch_xpt2046/pull/11
+
+## v1.0.5 - new features
+
+* support for interrupt triggered wake-up for reading, thanks @ttt470!
 
 ## v1.0.4 - New features
 
